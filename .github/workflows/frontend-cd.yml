@@ -1,0 +1,63 @@
+name: Frontend CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'starter/frontend/**'
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install Dependencies & Test
+        run: |
+          cd starter/frontend || cd frontend
+          npm ci
+          npm test -- --watchAll=false
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, Tag, and Push Docker Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd starter/frontend || cd frontend
+          docker build -t $ECR_REGISTRY/frontend:$IMAGE_TAG -t $ECR_REGISTRY/frontend:latest .
+          docker push $ECR_REGISTRY/frontend:$IMAGE_TAG
+          docker push $ECR_REGISTRY/frontend:latest
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name cluster --region us-east-1
+
+      - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          sed -i "s|IMAGE_PLACEHOLDER|${ECR_REGISTRY}/frontend:${IMAGE_TAG}|g" setup/k8s/frontend-deployment.yaml || true
+          kubectl apply -f setup/k8s/
