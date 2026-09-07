@@ -142,7 +142,7 @@ resource "aws_ecr_repository" "backend" {
 # Create an EKS cluster
 resource "aws_eks_cluster" "main" {
   name     = "cluster"
-  version  = var.k8s_version
+  version  = "1.31"
   role_arn = aws_iam_role.eks_cluster.arn
   vpc_config {
     subnet_ids              = [aws_subnet.private_subnet.id, aws_subnet.public_subnet.id]
@@ -194,7 +194,7 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
 resource "aws_eks_node_group" "main" {
   node_group_name = "udacity"
   cluster_name    = aws_eks_cluster.main.name
-  version         = aws_eks_cluster.main.version
+  version         = "1.31"
   node_role_arn   = aws_iam_role.node_group.arn
   subnet_ids      = [var.enable_private == true ? aws_subnet.private_subnet.id : aws_subnet.public_subnet.id]
   release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
@@ -316,10 +316,10 @@ resource "aws_iam_user" "github_action_user" {
   name = "github-action-user"
 }
 
-resource "aws_iam_user_policy" "github_action_user_permission" {
-  user   = aws_iam_user.github_action_user.name
-  policy = data.aws_iam_policy_document.github_policy.json
-}
+#resource "aws_iam_user_policy" "github_action_user_permission" {
+#  user   = aws_iam_user.github_action_user.name
+#  policy = data.aws_iam_policy_document.github_policy.json
+#}
 
 data "aws_iam_policy_document" "github_policy" {
   statement {
