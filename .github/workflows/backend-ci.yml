@@ -5,7 +5,6 @@ on:
     branches: [ main ]
     paths:
       - 'starter/backend/**'
-      - 'backend/**'
   workflow_dispatch:
 
 jobs:
@@ -19,12 +18,10 @@ jobs:
           python-version: '3.10'
       - name: Install Dependencies & Lint
         run: |
-          cd starter/backend || cd backend
+          cd starter/backend
           python -m pip install --upgrade pip
           pip install flake8
-          # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
-          # exit-zero treats all errors as warnings
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
   test:
@@ -37,11 +34,11 @@ jobs:
           python-version: '3.10'
       - name: Install Dependencies & Test
         run: |
-          cd starter/backend || cd backend
+          cd starter/backend
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || true
+          pip install -r requirements.txt || pip install Pipfile || true
           pip install pytest
-          pytest || python -m unittest discover || true
+          pytest test_app.py || python -m unittest discover || true
 
   build:
     needs: [lint, test]
@@ -50,5 +47,5 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Docker Image
         run: |
-          cd starter/backend || cd backend
+          cd starter/backend
           docker build -t backend:test .

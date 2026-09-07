@@ -5,7 +5,6 @@ on:
     branches: [ main ]
     paths:
       - 'starter/frontend/**'
-      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
@@ -19,7 +18,7 @@ jobs:
           node-version: '18'
       - name: Install Dependencies & Lint
         run: |
-          cd starter/frontend || cd frontend
+          cd starter/frontend
           npm ci
           npm run lint
 
@@ -33,7 +32,7 @@ jobs:
           node-version: '18'
       - name: Install Dependencies & Test
         run: |
-          cd starter/frontend || cd frontend
+          cd starter/frontend
           npm ci
           npm test -- --watchAll=false
 
@@ -44,5 +43,5 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Docker Image
         run: |
-          cd starter/frontend || cd frontend
+          cd starter/frontend
           docker build -t frontend:test .
